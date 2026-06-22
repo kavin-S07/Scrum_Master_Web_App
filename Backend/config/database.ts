@@ -3,15 +3,13 @@ import { env } from './env';
 import logger from '../utils/logger';
 
 const pool = new Pool({
-  host: env.db.host,
-  port: env.db.port,
-  database: env.db.name,
-  user: env.db.user,
-  password: env.db.password,
+  connectionString: env.db.databaseUrl,
   max: env.db.poolMax,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  ssl: env.db.ssl ? { rejectUnauthorized: false } : undefined,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 pool.on('connect', () => {

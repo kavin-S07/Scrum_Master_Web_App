@@ -15,6 +15,7 @@ interface EnvConfig {
   isProduction: boolean;
   port: number;
   db: {
+    databaseUrl?: string;
     host: string;
     port: number;
     user: string;
@@ -35,7 +36,7 @@ interface EnvConfig {
   allowedOrigins: string[];
 }
 
-const REQUIRED_IN_PRODUCTION = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DB_PASSWORD'] as const;
+const REQUIRED_IN_PRODUCTION = ['JWT_SECRET', 'JWT_REFRESH_SECRET'] as const;
 
 const INSECURE_DEFAULTS = new Set([
   'fallback_secret_change_in_production',
@@ -53,6 +54,11 @@ function loadEnv(): EnvConfig {
     if (missing.length > 0) {
       throw new Error(
         `Missing required environment variable(s) in production: ${missing.join(', ')}`
+      );
+    }
+    if (!process.env.DATABASE_URL && !process.env.DB_PASSWORD) {
+      throw new Error(
+        'Missing database configuration: set either DATABASE_URL or DB_PASSWORD in production.'
       );
     }
   }
@@ -76,6 +82,7 @@ function loadEnv(): EnvConfig {
     isProduction,
     port: parseInt(process.env.PORT || '5000', 10),
     db: {
+      databaseUrl: process.env.DATABASE_URL,
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       user: process.env.DB_USER || 'postgres',

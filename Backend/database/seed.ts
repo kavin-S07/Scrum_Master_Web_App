@@ -8,7 +8,8 @@ const seed = async () => {
   try {
     await client.query('BEGIN');
 
-    const hash = await bcrypt.hash('Password@123', 10);
+    const adminHash = await bcrypt.hash('Admin@123', 10);
+    const userHash = await bcrypt.hash('Password@123', 10);
 
     // Admin
     const adminId = uuidv4();
@@ -16,7 +17,7 @@ const seed = async () => {
       `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, role)
        VALUES ($1, 'ADMIN-001', 'Super', 'Admin', 'admin@sprintflow.com', $2, 'admin')
        ON CONFLICT (email) DO NOTHING`,
-      [adminId, hash]
+      [adminId, adminHash]
     );
 
     // Scrum Master
@@ -25,7 +26,7 @@ const seed = async () => {
       `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, role)
        VALUES ($1, 'SM-001', 'Raj', 'Kumar', 'raj.sm@sprintflow.com', $2, 'scrum_master')
        ON CONFLICT (email) DO NOTHING`,
-      [smId, hash]
+      [smId, userHash]
     );
 
     // Employees
@@ -38,7 +39,7 @@ const seed = async () => {
        ($2, 'EMP-002', 'Priya', 'Coder', 'priya@sprintflow.com', $4, 'employee'),
        ($3, 'EMP-003', 'Kiran', 'Tester', 'kiran@sprintflow.com', $4, 'employee')
        ON CONFLICT (email) DO NOTHING`,
-      [emp1Id, emp2Id, emp3Id, hash]
+      [emp1Id, emp2Id, emp3Id, userHash]
     );
 
     // Department
@@ -135,12 +136,12 @@ const seed = async () => {
     await client.query('COMMIT');
     logger.info('✅ Seed data inserted successfully');
     logger.info('');
-    logger.info('Login credentials (all use Password@123):');
-    logger.info('  Admin:        admin@sprintflow.com');
-    logger.info('  Scrum Master: raj.sm@sprintflow.com');
-    logger.info('  Employee 1:   arun@sprintflow.com');
-    logger.info('  Employee 2:   priya@sprintflow.com');
-    logger.info('  Employee 3:   kiran@sprintflow.com');
+    logger.info('Login credentials:');
+    logger.info('  Admin:        admin@sprintflow.com / Admin@123');
+    logger.info('  Scrum Master: raj.sm@sprintflow.com / Password@123');
+    logger.info('  Employee 1:   arun@sprintflow.com   / Password@123');
+    logger.info('  Employee 2:   priya@sprintflow.com  / Password@123');
+    logger.info('  Employee 3:   kiran@sprintflow.com  / Password@123');
   } catch (err) {
     await client.query('ROLLBACK');
     logger.error('Seeding failed', err);
