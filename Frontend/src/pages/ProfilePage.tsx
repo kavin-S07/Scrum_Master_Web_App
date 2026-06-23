@@ -5,7 +5,7 @@ import { Alert, Spinner, StatusBadge } from '../components/common';
 import toast from 'react-hot-toast';
 
 const ProfilePage: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [form, setForm] = useState({ current_password: '', new_password: '', confirm: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

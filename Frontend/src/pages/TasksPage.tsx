@@ -178,12 +178,14 @@ const TasksPage: React.FC = () => {
   );
   const projects = projectsData || [];
 
+  const firstProjectId = projects.length > 0 ? projects[0]?.id : null;
   const { data: sprintsData } = useApi<Sprint[]>(
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useCallback(() =>
-      projects.length > 0
-        ? sprintsApi.listByProject(projects[0].id)
+      firstProjectId
+        ? sprintsApi.listByProject(firstProjectId)
         : Promise.resolve({ data: { data: [] as Sprint[] } }),
-      [projects.length > 0 ? projects[0]?.id : null]
+      [firstProjectId]
     )
   );
   const sprints = sprintsData || [];
@@ -194,7 +196,7 @@ const TasksPage: React.FC = () => {
     })), [])
   );
   const users = usersData || [];
-  const employees = users.filter((u) => u.role === 'employee' && u.is_active);
+  // const employees = users.filter((u) => u.role === 'employee' && u.is_active);
 
   const [modal, setModal] = useState<'create' | Task | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);

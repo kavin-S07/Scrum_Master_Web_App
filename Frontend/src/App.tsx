@@ -8,6 +8,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UserPage';
 import DepartmentsPage from './pages/DepartmentPage';
@@ -32,6 +33,7 @@ const App: React.FC = () => (
 
         <Routes>
 
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
@@ -52,7 +54,7 @@ const App: React.FC = () => (
 
           <Route path="/users" element={<ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>} />
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* / is handled above by HomePage */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
 
         </Routes>

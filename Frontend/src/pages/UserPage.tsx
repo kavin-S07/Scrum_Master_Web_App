@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { usersApi } from '../api';
 import { useApi } from '../hooks/useApi';
 import { LoadingCenter, Alert, StatusBadge, Pagination, Badge, ConfirmModal, DetailModal } from '../components/common';
-import type { DetailField } from '../components/common';
+// import type { DetailField } from '../components/common';
 import type { User } from '../types';
 import toast from 'react-hot-toast';
 

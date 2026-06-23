@@ -11,7 +11,7 @@ import {
   ConfirmModal,
   DetailModal,
 } from '../components/common';
-import type { DetailField } from '../components/common';
+// import type { DetailField } from '../components/common';
 import type { Sprint, SprintStatus, Project, BurndownData } from '../types';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';

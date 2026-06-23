@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Building2 } from 'lucide-react';
 import { departmentsApi } from '../api';
 import { useApi } from '../hooks/useApi';
 import { LoadingCenter, Alert, Modal, EmptyState, ConfirmModal, DetailModal } from '../components/common';
-import type { DetailField } from '../components/common';
+// import type { DetailField } from '../components/common';
 import type { Department } from '../types';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext'; 

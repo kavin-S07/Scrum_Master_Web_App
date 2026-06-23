@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, GitBranch, CheckSquare, BarChart3 } from 'lucide-react';
-import { projectsApi, teamsApi, sprintsApi, tasksApi } from '../api';
+import { projectsApi, sprintsApi, tasksApi } from '../api';
 import { useApi } from '../hooks/useApi';
 import {
   LoadingCenter,
@@ -10,13 +10,10 @@ import {
   StatusBadge,
 } from '../components/common';
 import type { Project, Team, Sprint, Task } from '../types';
-import { useAuth } from '../context/AuthContext';
 
 const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-
   const { data: project, loading: loadingProj, error: errorProj } = useApi<Project>(
     useCallback(() => id ? projectsApi.get(id) : Promise.resolve({ data: { data: null as unknown as Project } }), [id])
   );

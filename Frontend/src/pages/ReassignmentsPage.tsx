@@ -7,10 +7,9 @@ import {
   Alert,
   Modal,
   EmptyState,
-  StatusBadge,
   DetailModal,
 } from '../components/common';
-import type { DetailField } from '../components/common';
+// import type { DetailField } from '../components/common';
 import type { Reassignment, ReassignmentRequest, Task, User } from '../types';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';

@@ -10,7 +10,6 @@ import {
 } from '../components/common';
 import type { WorkLog, WorkLogRequest, Task } from '../types';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
 
 const WorkLogForm: React.FC<{
   onSave: (d: WorkLogRequest) => void;
@@ -63,7 +62,6 @@ const WorkLogForm: React.FC<{
 };
 
 const WorkLogsPage: React.FC = () => {
-  const { user } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
 

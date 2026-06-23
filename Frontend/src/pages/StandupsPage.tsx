@@ -45,7 +45,7 @@ const StandupsPage: React.FC = () => {
   const [selectedTeam, setSelectedTeam] = useState('');
   const [teamDate, setTeamDate] = useState(today);
 
-  const { data: teamStandups, loading: loadingTeam, refetch: refetchTeam } = useApi<Standup[]>(
+  const { data: teamStandups, loading: loadingTeam } = useApi<Standup[]>(
     useCallback(
       () =>
         selectedTeam
