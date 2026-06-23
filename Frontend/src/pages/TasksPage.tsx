@@ -66,7 +66,7 @@ const TaskForm: React.FC<{
   // Load on mount if editing an existing task
   useEffect(() => {
     if (form.project_id) loadSprints(form.project_id);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k: keyof TaskRequest, v: string | number | undefined) =>
     setForm((f) => ({ ...f, [k]: v }));

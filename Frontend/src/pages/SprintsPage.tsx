@@ -191,7 +191,7 @@ const SprintsPage: React.FC = () => {
     Promise.all(projects.map((p) => sprintsApi.listByProject(p.id).then((r) => r.data.data).catch(() => [] as Sprint[])))
       .then((results) => setAllSprints(results.flat()))
       .finally(() => setLoadingAll(false));
-  }, [projects.length]);
+  }, [projects.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Per-project fetch when filter selected
   const [filteredSprints, setFilteredSprints] = useState<Sprint[] | null>(null);

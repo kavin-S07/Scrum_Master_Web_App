@@ -12,7 +12,6 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [scrollPct, setScrollPct] = useState(0);
   const [typeText, setTypeText] = useState('');
-  const [typingDone, setTypingDone] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsCounted, setStatsCounted] = useState(false);
   const [sc1, setSc1] = useState(0);
@@ -43,7 +42,6 @@ const HomePage: React.FC = () => {
         setTypeText(w.slice(0, ci));
         if (ci === w.length) {
           del = true;
-          setTypingDone(true);
           setTimeout(tick, 1600);
           return;
         }
@@ -53,7 +51,6 @@ const HomePage: React.FC = () => {
         if (ci === 0) {
           del = false;
           wi = (wi + 1) % words.length;
-          setTypingDone(false);
         }
       }
       setTimeout(tick, del ? 45 : 80);
@@ -379,7 +376,7 @@ const HomePage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: 24 }}>
           {['Privacy', 'Terms', 'Support', 'Status'].map((l) => (
-            <a key={l} href="#" style={{ fontSize: 13, color: '#475569', textDecoration: 'none' }}>{l}</a>
+            <span key={l} style={{ fontSize: 13, color: '#475569', cursor: 'default' }}>{l}</span>
           ))}
         </div>
       </footer>
