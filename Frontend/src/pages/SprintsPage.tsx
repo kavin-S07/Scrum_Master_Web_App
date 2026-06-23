@@ -183,15 +183,18 @@ const SprintsPage: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState('');
 
   // FIX: don't fake a Promise shape — use a flag to skip the API call entirely
-  const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
-    useCallback(
-      () =>
-        selectedProject
-          ? sprintsApi.listByProject(selectedProject)
-          : Promise.resolve({ data: { data: [] as Sprint[] } }),
-      [selectedProject]
-    )
-  );
+ // AFTER
+const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
+  useCallback(
+    () =>
+      selectedProject
+        ? sprintsApi.listByProject(selectedProject).then((r) => ({
+            data: { data: r.data.data },
+          }))
+        : Promise.resolve({ data: { data: [] as Sprint[] } }),
+    [selectedProject]
+  )
+);
 
   const [modal, setModal] = useState<'create' | Sprint | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);

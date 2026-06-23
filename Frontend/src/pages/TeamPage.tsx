@@ -69,7 +69,6 @@ const TeamForm: React.FC<{
     </form>
   );
 };
-
 const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean }> = ({
   team,
   onClose,
@@ -79,9 +78,6 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
     useCallback(() => teamsApi.members(team.id), [team.id])
   );
 
-  // FIX: usersApi.list returns a PaginatedResponse, not ApiResponse<User[]>.
-  // The useApi hook reads res.data.data which for paginated endpoints is the
-  // array of items. Cast accordingly instead of forcing to User[].
   const { data: employeeList } = useApi<User[]>(
     useCallback(() =>
       usersApi.list({ limit: 100, role: 'employee' }).then((r) => ({
@@ -108,9 +104,9 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
     }
   };
 
-  const handleRemove = async (empId: string) => {
+  const handleRemove = async (userId: string) => {
     try {
-      await teamsApi.removeMember(team.id, empId);
+      await teamsApi.removeMember(team.id, userId);
       toast.success('Member removed');
       refetch();
     } catch (e: unknown) {
@@ -119,59 +115,128 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
     }
   };
 
-  // Employees already on the team (by their user id, which equals employee_id in member rows)
   const memberUserIds = new Set((members || []).map((m) => m.id));
   const available = (employeeList || []).filter((u) => !memberUserIds.has(u.id));
 
   return (
-    <Modal open title={`Members — ${team.team_name}`} onClose={onClose} maxWidth={560}>
+    <Modal open title={`Members — ${team.team_name}`} onClose={onClose} maxWidth={620}>
+      {/* Add member row */}
       {canEdit && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{
+          display: 'flex', gap: 10, marginBottom: 20,
+          padding: '12px 14px',
+          background: 'var(--bg-elevated, #F4F6FB)',
+          borderRadius: 10,
+          border: '1px solid var(--border, #E2E8F0)',
+        }}>
           <select
             className="form-control"
             value={addId}
             onChange={(e) => setAddId(e.target.value)}
+            style={{ flex: 1, minWidth: 0 }}
           >
-            <option value="">Add employee…</option>
+            <option value="">Select employee to add…</option>
             {available.map((u) => (
-              <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
+              <option key={u.id} value={u.id}>
+                {u.first_name} {u.last_name} — {u.email}
+              </option>
             ))}
           </select>
           <button
             className="btn btn-primary"
             onClick={handleAdd}
             disabled={adding || !addId}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            Add
+            {adding ? '…' : '+ Add'}
           </button>
         </div>
       )}
+
+      {/* Members list */}
       {loading ? (
         <LoadingCenter />
       ) : !members || members.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', padding: '16px 0' }}>No members yet.</p>
+        <div style={{
+          textAlign: 'center', padding: '40px 20px',
+          color: 'var(--text-muted)',
+          background: 'var(--bg-elevated, #F4F6FB)',
+          borderRadius: 10,
+          border: '1px dashed var(--border, #E2E8F0)',
+        }}>
+          <Users size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p style={{ margin: 0, fontSize: 14 }}>No members yet. Add employees above.</p>
+        </div>
       ) : (
-        <div className="table-wrap">
-          <table className="table">
+        <div style={{
+          border: '1px solid var(--border, #E2E8F0)',
+          borderRadius: 10,
+          overflow: 'hidden',
+          maxHeight: 340,
+          overflowY: 'auto',
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '28%' }} />
+              <col style={{ width: '38%' }} />
+              <col style={{ width: '18%' }} />
+              {canEdit && <col style={{ width: '16%' }} />}
+            </colgroup>
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                {canEdit && <th></th>}
+              <tr style={{ background: 'var(--bg-elevated, #F4F6FB)', borderBottom: '1px solid var(--border, #E2E8F0)' }}>
+                <th style={thStyle}>Name</th>
+                <th style={thStyle}>Email</th>
+                <th style={thStyle}>Role</th>
+                {canEdit && <th style={{ ...thStyle, textAlign: 'right' }}></th>}
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
-                <tr key={m.id}>
-                  <td style={{ fontWeight: 500 }}>{m.first_name} {m.last_name}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{m.email}</td>
-                  <td><StatusBadge status={m.role} /></td>
+              {members.map((m, i) => (
+                <tr
+                  key={m.id}
+                  style={{
+                    borderBottom: i < members.length - 1 ? '1px solid var(--border-subtle, #EEF2F7)' : 'none',
+                    background: i % 2 === 0 ? '#fff' : 'var(--bg-elevated, #FAFBFF)',
+                  }}
+                >
+                  <td style={tdStyle}>
+                    <div style={{
+                      fontWeight: 600, fontSize: 14, color: 'var(--text-primary, #0F172A)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {m.first_name} {m.last_name}
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{
+                      fontSize: 13, color: 'var(--text-secondary, #64748B)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      display: 'block',
+                    }}>
+                      {m.email}
+                    </span>
+                  </td>
+                  <td style={tdStyle}>
+                    <StatusBadge status={m.role} />
+                  </td>
                   {canEdit && (
-                    <td>
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleRemove(m.employee_id)}
+                        onClick={() => handleRemove(m.id)}
+                        style={{
+                          background: 'transparent',
+                          border: '1.5px solid #FCA5A5',
+                          color: '#DC2626',
+                          borderRadius: 7,
+                          padding: '4px 10px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'background .15s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         Remove
                       </button>
@@ -183,8 +248,31 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
           </table>
         </div>
       )}
+
+      {/* Footer count */}
+      {members && members.length > 0 && (
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', textAlign: 'right' }}>
+          {members.length} member{members.length !== 1 ? 's' : ''}
+        </div>
+      )}
     </Modal>
   );
+};
+
+// Style constants (place outside the component, at module level)
+const thStyle: React.CSSProperties = {
+  padding: '10px 14px',
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: 0.6,
+  color: 'var(--text-muted, #94A3B8)',
+  textAlign: 'left',
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: '12px 14px',
+  verticalAlign: 'middle',
 };
 
 const TeamsPage: React.FC = () => {

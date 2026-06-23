@@ -179,15 +179,18 @@ const TasksPage: React.FC = () => {
   const projects = projectsData || [];
 
   const firstProjectId = projects.length > 0 ? projects[0]?.id : null;
-  const { data: sprintsData } = useApi<Sprint[]>(
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useCallback(() =>
-      firstProjectId
-        ? sprintsApi.listByProject(firstProjectId)
-        : Promise.resolve({ data: { data: [] as Sprint[] } }),
-      [firstProjectId]
-    )
-  );
+  // AFTER
+const { data: sprintsData } = useApi<Sprint[]>(
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useCallback(() =>
+    firstProjectId
+      ? sprintsApi.listByProject(firstProjectId).then((r) => ({
+          data: { data: r.data.data },
+        }))
+      : Promise.resolve({ data: { data: [] as Sprint[] } }),
+    [firstProjectId]
+  )
+);
   const sprints = sprintsData || [];
 
   const { data: usersData } = useApi<User[]>(
