@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Pencil, Trash2, CheckSquare, UserPlus, ChevronDown } from 'lucide-react';
-import { tasksApi, projectsApi, sprintsApi, usersApi } from '../api';
+import { tasksApi, projectsApi, sprintsApi, teamsApi } from '../api';
 import { useApi } from '../hooks/useApi';
 import {
   LoadingCenter,
@@ -13,7 +13,7 @@ import {
   DetailModal,
 } from '../components/common';
 import type { DetailField } from '../components/common';
-import type { Task, TaskRequest, TaskStatus, TaskPriority, Project, Sprint, User } from '../types';
+import type { Task, TaskRequest, TaskStatus, TaskPriority, Project, Sprint } from '../types';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,7 +34,7 @@ const TaskForm: React.FC<{
   loading: boolean;
   projects: Project[];
   sprints: Sprint[];
-}> = ({ initial, onSave, loading, projects, sprints }) => {
+}> = ({ initial, onSave, loading, projects }) => {
   const [form, setForm] = useState<TaskRequest>({
     project_id: initial?.project_id || '',
     sprint_id: initial?.sprint_id || '',
@@ -45,8 +45,37 @@ const TaskForm: React.FC<{
     story_points: initial?.story_points || undefined,
     due_date: initial?.due_date?.slice(0, 10) || '',
   });
+
+  // ── Dynamic sprint loading based on selected project ──────────────
+  const [formSprints, setFormSprints] = useState<Sprint[]>([]);
+  const [loadingSprints, setLoadingSprints] = useState(false);
+
+  const loadSprints = useCallback(async (projectId: string) => {
+    if (!projectId) { setFormSprints([]); return; }
+    setLoadingSprints(true);
+    try {
+      const res = await sprintsApi.listByProject(projectId);
+      setFormSprints(res.data.data);
+    } catch {
+      setFormSprints([]);
+    } finally {
+      setLoadingSprints(false);
+    }
+  }, []);
+
+  // Load on mount if editing an existing task
+  useEffect(() => {
+    if (form.project_id) loadSprints(form.project_id);
+  }, []);
+
   const set = (k: keyof TaskRequest, v: string | number | undefined) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  const handleProjectChange = (projectId: string) => {
+    set('project_id', projectId);
+    set('sprint_id', '');
+    loadSprints(projectId);
+  };
 
   const clean = (f: TaskRequest): TaskRequest => ({
     ...f,
@@ -60,7 +89,7 @@ const TaskForm: React.FC<{
       <div className="form-group">
         <label className="form-label">Project *</label>
         <select className="form-control" value={form.project_id}
-          onChange={(e) => set('project_id', e.target.value)} required>
+          onChange={(e) => handleProjectChange(e.target.value)} required>
           <option value="">Select project</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.project_name}</option>)}
         </select>
@@ -68,9 +97,10 @@ const TaskForm: React.FC<{
       <div className="form-group">
         <label className="form-label">Sprint</label>
         <select className="form-control" value={form.sprint_id || ''}
-          onChange={(e) => set('sprint_id', e.target.value)}>
-          <option value="">No sprint</option>
-          {sprints.map((s) => <option key={s.id} value={s.id}>{s.sprint_name}</option>)}
+          onChange={(e) => set('sprint_id', e.target.value)}
+          disabled={!form.project_id || loadingSprints}>
+          <option value="">{loadingSprints ? 'Loading sprints…' : 'No sprint'}</option>
+          {formSprints.map((s) => <option key={s.id} value={s.id}>{s.sprint_name}</option>)}
         </select>
       </div>
       <div className="form-group">
@@ -124,26 +154,57 @@ const TaskForm: React.FC<{
 
 const AssignForm: React.FC<{
   taskId: string;
+  projectId: string;
   currentAssignee?: string;
   onAssign: (taskId: string, employeeId: string) => void;
   loading: boolean;
-  users: User[];
-}> = ({ taskId, onAssign, loading, users }) => {
+}> = ({ taskId, projectId, onAssign, loading }) => {
   const [employeeId, setEmployeeId] = useState('');
+
+  const [assignable, setAssignable] = useState<{ id: string; first_name: string; last_name: string; email: string }[]>([]);
+  const [loading_, setLoading_] = useState(true);
+  const [isEmpty, setIsEmpty] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) { setLoading_(false); setAssignable([]); setIsEmpty(true); return; }
+    setLoading_(true);
+    projectsApi.teams(projectId).then((r) => {
+      const teams = r.data.data;
+      if (!teams || teams.length === 0) {
+        setLoading_(false); setAssignable([]); setIsEmpty(true);
+        return;
+      }
+      return Promise.all(teams.map((t) => teamsApi.members(t.id).then((r) => r.data.data).catch(() => [])))
+        .then((results) => {
+          const flat = results.flat().filter((m) => m.role === 'employee');
+          setAssignable(flat);
+          setIsEmpty(flat.length === 0);
+          setLoading_(false);
+        });
+    }).catch(() => {
+      setAssignable([]); setIsEmpty(true); setLoading_(false);
+    });
+  }, [projectId]);
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onAssign(taskId, employeeId); }}>
       <div className="form-group">
         <label className="form-label">Select Employee *</label>
         <select className="form-control" value={employeeId}
-          onChange={(e) => setEmployeeId(e.target.value)} required>
-          <option value="">Choose employee…</option>
-          {users.filter((u) => u.role === 'employee' && u.is_active).map((u) => (
+          onChange={(e) => setEmployeeId(e.target.value)} required disabled={loading_}>
+          <option value="">{loading_ ? 'Loading team members…' : 'Choose employee…'}</option>
+          {assignable.map((u) => (
             <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.email})</option>
           ))}
         </select>
+        {!loading_ && isEmpty && (
+          <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            No project team members found with employee role.
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" type="submit" disabled={loading || !employeeId}>
+        <button className="btn btn-primary" type="submit" disabled={loading || loading_ || !employeeId}>
           {loading ? 'Assigning…' : 'Assign'}
         </button>
       </div>
@@ -193,17 +254,9 @@ const { data: sprintsData } = useApi<Sprint[]>(
 );
   const sprints = sprintsData || [];
 
-  const { data: usersData } = useApi<User[]>(
-    useCallback(() => usersApi.list({ limit: 200 }).then((r) => ({
-      data: { data: r.data.data, pagination: r.data.pagination },
-    })), [])
-  );
-  const users = usersData || [];
-  // const employees = users.filter((u) => u.role === 'employee' && u.is_active);
-
   const [modal, setModal] = useState<'create' | Task | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);
-  const [assignTarget, setAssignTarget] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState<{ id: string; projectId: string } | null>(null);
   const [detailTarget, setDetailTarget] = useState<Task | null>(null);
   const [saving, setSaving] = useState(false);
   const [changingId, setChangingId] = useState<string | null>(null);
@@ -363,7 +416,7 @@ const { data: sprintsData } = useApi<Sprint[]>(
                           <div className="table-actions">
                             {canEdit && !t.assigned_to_id && (
                               <button className="btn btn-ghost btn-sm"
-                                onClick={() => setAssignTarget(t.id)} title="Assign employee">
+                                onClick={() => setAssignTarget({ id: t.id, projectId: t.project_id })} title="Assign employee">
                                 <UserPlus size={13} /> Assign
                               </button>
                             )}
@@ -405,8 +458,8 @@ const { data: sprintsData } = useApi<Sprint[]>(
 
       <Modal open={!!assignTarget} title="Assign Task" onClose={() => setAssignTarget(null)}>
         {assignTarget && (
-          <AssignForm taskId={assignTarget} onAssign={handleAssign}
-            loading={saving} users={users} />
+          <AssignForm taskId={assignTarget.id} projectId={assignTarget.projectId} onAssign={handleAssign}
+            loading={saving} />
         )}
       </Modal>
 

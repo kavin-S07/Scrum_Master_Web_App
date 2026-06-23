@@ -66,8 +66,8 @@ const Sidebar: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
 
         {/* Logo */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">SF</div>
-          <div className="sidebar-logo-text">Sprint<span>Flow</span></div>
+          <img src="https://res.cloudinary.com/dw9kvnkkz/image/upload/v1782212001/full_logo_gtiszq.png"
+            alt="SprintFlow" style={{ height: 34, objectFit: 'contain' }} />
         </div>
 
         {/* Nav */}

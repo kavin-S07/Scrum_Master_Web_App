@@ -7,7 +7,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 
 export const teamController = {
   getAll: asyncHandler(async (req: Request, res: Response) => {
-    const teams = await teamRepository.findAll(req.query.department_id as string);
+    const teams = await teamRepository.findAll(req.query.department_id as string, req.query.scrum_master_id as string);
     sendSuccess(res, teams);
   }),
 

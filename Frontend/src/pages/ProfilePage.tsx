@@ -1,130 +1,519 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { authApi } from '../api';
-import { Alert, Spinner, StatusBadge } from '../components/common';
+import React, { useState, useCallback } from 'react';
+import { Plus, Pencil, Trash2, Briefcase, Users, X } from 'lucide-react';
+import { projectsApi, teamsApi } from '../api';
+import { useApi } from '../hooks/useApi';
+import {
+  LoadingCenter,
+  Alert,
+  Modal,
+  EmptyState,
+  StatusBadge,
+  ConfirmModal,
+  Pagination,
+  DetailModal,
+} from '../components/common';
+import type { DetailField } from '../components/common';
+import type { Project, ProjectRequest, ProjectStatus, Team } from '../types';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
-  const [form, setForm] = useState({ current_password: '', new_password: '', confirm: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+const STATUSES: ProjectStatus[] = ['planning', 'active', 'on_hold', 'completed', 'cancelled'];
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+const fmt = (d: string) =>
+  d
+    ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    : '—';
+
+const ProjectForm: React.FC<{
+  initial?: Project;
+  onSave: (d: ProjectRequest) => void;
+  loading: boolean;
+}> = ({ initial, onSave, loading }) => {
+  const [form, setForm] = useState<ProjectRequest>({
+    project_name: initial?.project_name || '',
+    project_code: initial?.project_code || '',
+    description: initial?.description || '',
+    start_date: initial?.start_date?.slice(0, 10) || '',
+    end_date: initial?.end_date?.slice(0, 10) || '',
+    status: initial?.status || 'planning',
+  });
+  const set = (k: keyof ProjectRequest, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.new_password !== form.confirm) {
-      setError('Passwords do not match');
+    if (form.end_date && form.start_date && form.end_date < form.start_date) {
+      toast.error('End date must be on or after start date');
       return;
     }
-    if (form.new_password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-    setError('');
-    setLoading(true);
+    onSave(form);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Project Name *</label>
+          <input
+            className="form-control"
+            value={form.project_name}
+            onChange={(e) => set('project_name', e.target.value)}
+            required
+            minLength={2}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Project Code *</label>
+          <input
+            className="form-control"
+            value={form.project_code}
+            onChange={(e) => set('project_code', e.target.value.toUpperCase())}
+            required
+            disabled={!!initial}
+            placeholder="e.g. PROJ01"
+          />
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Description</label>
+        <textarea
+          className="form-control"
+          value={form.description}
+          onChange={(e) => set('description', e.target.value)}
+        />
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Start Date *</label>
+          <input
+            className="form-control"
+            type="date"
+            value={form.start_date}
+            onChange={(e) => set('start_date', e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">End Date *</label>
+          <input
+            className="form-control"
+            type="date"
+            value={form.end_date}
+            min={form.start_date}
+            onChange={(e) => set('end_date', e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Status</label>
+        <select
+          className="form-control"
+          value={form.status}
+          onChange={(e) => set('status', e.target.value)}
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button className="btn btn-primary" type="submit" disabled={loading}>
+          {loading ? 'Saving…' : initial ? 'Update' : 'Create'}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export const ProjectTeamsModal: React.FC<{ project: Project; onClose: () => void; canEdit: boolean }> = ({
+  project,
+  onClose,
+  canEdit,
+}) => {
+  const { data: assignedTeams, loading, refetch } = useApi<Team[]>(
+    useCallback(() => projectsApi.teams(project.id).then((r) => ({ data: { data: r.data.data } })), [project.id])
+  );
+
+  const { data: allTeams } = useApi<Team[]>(
+    useCallback(() => teamsApi.list().then((r) => ({ data: { data: r.data.data } })), [])
+  );
+
+  const [addId, setAddId] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const assignedIds = new Set((assignedTeams || []).map((t) => t.id));
+  const available = (allTeams || []).filter((t) => !assignedIds.has(t.id));
+
+  const handleAdd = async () => {
+    if (!addId) return;
+    setAdding(true);
     try {
-      await authApi.changePassword({ current_password: form.current_password, new_password: form.new_password });
-      toast.success('Password changed successfully');
-      setForm({ current_password: '', new_password: '', confirm: '' });
-      setShowForm(false);
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message || 'Failed to change password');
+      await projectsApi.assignTeam(project.id, addId);
+      toast.success('Team assigned to project');
+      setAddId('');
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to assign team');
     } finally {
-      setLoading(false);
+      setAdding(false);
     }
   };
 
-  if (!user) return null;
+  const handleRemove = async (teamId: string) => {
+    setRemovingId(teamId);
+    try {
+      await projectsApi.removeTeam(project.id, teamId);
+      toast.success('Team removed from project');
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to remove team');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <Modal open title={`Teams — ${project.project_name}`} onClose={onClose} maxWidth={560}>
+      {/* Add team row */}
+      {canEdit && (
+        <div style={{
+          display: 'flex', gap: 10, marginBottom: 20,
+          padding: '12px 14px',
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius)',
+          border: '1px solid var(--border)',
+        }}>
+          <select
+            className="form-control"
+            value={addId}
+            onChange={(e) => setAddId(e.target.value)}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            <option value="">Select team to assign…</option>
+            {available.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.team_name}{t.department_name ? ` — ${t.department_name}` : ''}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn btn-primary"
+            onClick={handleAdd}
+            disabled={adding || !addId}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            {adding ? '…' : '+ Assign'}
+          </button>
+        </div>
+      )}
+
+      {/* Assigned teams list */}
+      {loading ? (
+        <LoadingCenter />
+      ) : !assignedTeams || assignedTeams.length === 0 ? (
+        <EmptyState icon={<Users size={32} />} message="No teams assigned yet. Assign one above." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {assignedTeams.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px',
+                background: 'var(--bg-elevated)',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '.875rem', color: 'var(--text-primary)' }}>
+                  {t.team_name}
+                </div>
+                <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>
+                  {t.department_name || 'No department'}
+                  {t.scrum_master_name ? ` · SM: ${t.scrum_master_name}` : ''}
+                </div>
+              </div>
+              {canEdit && (
+                <button
+                  className="btn btn-ghost btn-icon btn-sm"
+                  onClick={() => handleRemove(t.id)}
+                  disabled={removingId === t.id}
+                  title="Remove team from project"
+                  style={{ color: 'var(--danger)', flexShrink: 0 }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {assignedTeams && assignedTeams.length > 0 && (
+        <div style={{ marginTop: 12, fontSize: '.8125rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+          {assignedTeams.length} team{assignedTeams.length !== 1 ? 's' : ''} assigned
+        </div>
+      )}
+    </Modal>
+  );
+};
+
+
+const ProjectsPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
+
+  const { data, pagination, loading, error, refetch } = useApi<Project[]>(
+    useCallback(
+      () =>
+        projectsApi
+          .list({ page, limit: 20, status: statusFilter || undefined })
+          .then((r) => ({ data: { data: r.data.data, pagination: r.data.pagination } })),
+      [page, statusFilter]
+    )
+  );
+
+  const [modal, setModal] = useState<'create' | Project | null>(null);
+  const [delTarget, setDelTarget] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Project | null>(null);
+  const [teamsTarget, setTeamsTarget] = useState<Project | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (form: ProjectRequest) => {
+    setSaving(true);
+    try {
+      if (modal === 'create') {
+        await projectsApi.create(form);
+      } else if (modal) {
+        await projectsApi.update((modal as Project).id, form);
+      }
+      toast.success(modal === 'create' ? 'Project created' : 'Project updated');
+      setModal(null);
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to save project');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!delTarget) return;
+    setSaving(true);
+    try {
+      await projectsApi.delete(delTarget);
+      toast.success('Project deleted');
+      setDelTarget(null);
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to delete project');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const projects = data || [];
 
   return (
     <div>
       <div className="page-header">
         <div>
-          <div className="page-title">My Profile</div>
-          <div className="page-subtitle">Your account information</div>
+          <div className="page-title">Projects</div>
+          <div className="page-subtitle">All projects in your organization</div>
         </div>
-      </div>
-
-      <div className="two-col-grid">
-        <div className="card">
-          <div className="card-header"><h3 className="card-title">Account Details</h3></div>
-          <div className="detail-grid">
-            <div>
-              <div className="detail-label">Name</div>
-              <div className="detail-value">{user.first_name} {user.last_name}</div>
-            </div>
-            <div>
-              <div className="detail-label">Email</div>
-              <div className="detail-value">{user.email}</div>
-            </div>
-            <div>
-              <div className="detail-label">Employee ID</div>
-              <div className="detail-value">{user.employee_id || '—'}</div>
-            </div>
-            <div>
-              <div className="detail-label">Role</div>
-              <div className="detail-value"><StatusBadge status={user.role} /></div>
-            </div>
-            <div>
-              <div className="detail-label">Phone</div>
-              <div className="detail-value">{user.phone || '—'}</div>
-            </div>
-            <div>
-              <div className="detail-label">Status</div>
-              <div className="detail-value">
-                <StatusBadge status={user.is_active ? 'active' : 'cancelled'} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Change Password</h3>
-            {!showForm && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowForm(true)}>
-                Change
-              </button>
-            )}
-          </div>
-          {showForm && (
-            <form onSubmit={handleChangePassword}>
-              {error && <Alert message={error} />}
-              <div className="form-group">
-                <label className="form-label">Current Password</label>
-                <input className="form-control" type="password" value={form.current_password}
-                  onChange={(e) => setForm({ ...form, current_password: e.target.value })}
-                  required autoComplete="current-password" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">New Password</label>
-                <input className="form-control" type="password" value={form.new_password}
-                  onChange={(e) => setForm({ ...form, new_password: e.target.value })}
-                  required minLength={8} autoComplete="new-password" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Confirm New Password</label>
-                <input className="form-control" type="password" value={form.confirm}
-                  onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-                  required autoComplete="new-password" />
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={loading}>
-                  {loading ? <Spinner size={14} /> : 'Update Password'}
-                </button>
-                <button className="btn btn-secondary" type="button"
-                  onClick={() => { setShowForm(false); setError(''); }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <select
+            className="form-control"
+            style={{ width: 150 }}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as ProjectStatus | '');
+              setPage(1);
+            }}
+          >
+            <option value="">All Status</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+          {isAdmin && (
+            <button className="btn btn-primary" onClick={() => setModal('create')}>
+              <Plus size={15} /> New Project
+            </button>
           )}
         </div>
       </div>
+
+      {loading && <LoadingCenter />}
+      {error && <Alert message={error} />}
+
+      {data && (
+        <div className="card">
+          {projects.length === 0 ? (
+            <EmptyState icon={<Briefcase size={40} />} message="No projects found" />
+          ) : (
+            <>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th>Code</th>
+                      <th>Dates</th>
+                      <th>Status</th>
+                      {isAdmin && <th>Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projects.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="row-clickable"
+                        onClick={() => setDetailTarget(p)}
+                      >
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{p.project_name}</div>
+                          {p.description && (
+                            <div
+                              style={{
+                                fontSize: '.75rem',
+                                color: 'var(--text-muted)',
+                                maxWidth: 220,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title={p.description}
+                            >
+                              {p.description}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '.8125rem', color: 'var(--primary)' }}>
+                          {p.project_code}
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '.8125rem', whiteSpace: 'nowrap' }}>
+                          {fmt(p.start_date)} → {fmt(p.end_date)}
+                        </td>
+                        <td>
+                          <StatusBadge status={p.status} />
+                        </td>
+                        {isAdmin && (
+                          <td>
+                            <div className="table-actions">
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={(e) => { e.stopPropagation(); setTeamsTarget(p); }}
+                                title="Manage assigned teams"
+                              >
+                                <Users size={13} /> Teams
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-icon btn-sm"
+                                onClick={(e) => { e.stopPropagation(); setModal(p); }}
+                                title="Edit project"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                className="btn btn-danger btn-icon btn-sm"
+                                onClick={(e) => { e.stopPropagation(); setDelTarget(p.id); }}
+                                title="Delete project"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {pagination && (
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  total={pagination.total}
+                  limit={pagination.limit}
+                  onPage={setPage}
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <Modal
+        open={!!modal}
+        title={modal === 'create' ? 'New Project' : 'Edit Project'}
+        onClose={() => setModal(null)}
+      >
+        {modal && (
+          <ProjectForm
+            initial={modal !== 'create' ? (modal as Project) : undefined}
+            onSave={handleSave}
+            loading={saving}
+          />
+        )}
+      </Modal>
+
+      <ConfirmModal
+        open={!!delTarget}
+        message="Delete this project? All sprints and tasks will be removed."
+        onConfirm={handleDelete}
+        onCancel={() => setDelTarget(null)}
+        loading={saving}
+      />
+
+      <DetailModal open={!!detailTarget} title={detailTarget?.project_name || 'Project Detail'}
+        onClose={() => setDetailTarget(null)}
+        fields={(() => {
+          if (!detailTarget) return undefined;
+          const f: DetailField[] = [
+            { label: 'Project Name', value: detailTarget.project_name, fullWidth: true },
+            { label: 'Project Code', value: detailTarget.project_code },
+            { label: 'Status', value: <StatusBadge status={detailTarget.status} /> },
+            { label: 'Start Date', value: fmt(detailTarget.start_date) },
+            { label: 'End Date', value: fmt(detailTarget.end_date) },
+          ];
+          if (detailTarget.description) f.push({ label: 'Description', value: detailTarget.description, fullWidth: true });
+          return f;
+        })()}
+      >
+        {detailTarget && (
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            {isAdmin && (
+              <button className="btn btn-secondary btn-sm" onClick={() => { setTeamsTarget(detailTarget); setDetailTarget(null); }}>
+                <Users size={13} /> Manage Teams
+              </button>
+            )}
+            <button className="btn btn-primary btn-sm" onClick={() => { setDetailTarget(null); navigate(`/projects/${detailTarget.id}`); }}>
+              View Full Project →
+            </button>
+          </div>
+        )}
+      </DetailModal>
+
+      {teamsTarget && (
+        <ProjectTeamsModal
+          project={teamsTarget}
+          onClose={() => setTeamsTarget(null)}
+          canEdit={isAdmin}
+        />
+      )}
     </div>
   );
 };
 
-export default ProfilePage;
+export default ProjectsPage;

@@ -5,12 +5,18 @@ import { buildUpdateSet } from '../utils/sql';
 const UPDATABLE_TEAM_FIELDS = ['department_id', 'team_name', 'scrum_master_id'] as const;
 
 export const teamRepository = {
-  async findAll(departmentId?: string) {
+  async findAll(departmentId?: string, scrumMasterId?: string) {
     const params: unknown[] = [];
     let where = '';
+    let idx = 1;
     if (departmentId) {
-      where = 'WHERE t.department_id = $1';
+      where = `WHERE t.department_id = $${idx}`;
       params.push(departmentId);
+      idx++;
+    }
+    if (scrumMasterId) {
+      where = where ? `${where} AND t.scrum_master_id = $${idx}` : `WHERE t.scrum_master_id = $${idx}`;
+      params.push(scrumMasterId);
     }
     const result = await query(
       `SELECT t.*, d.name as department_name,

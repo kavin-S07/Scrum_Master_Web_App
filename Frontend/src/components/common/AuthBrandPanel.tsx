@@ -14,8 +14,8 @@ const AuthBrandPanel: React.FC<Props> = ({ title, subtitle, features }) => (
 
     {/* Logo */}
     <div className="auth-brand-top">
-      <div className="auth-brand-logo">SF</div>
-      <span className="auth-brand-name">Sprint<span style={{ opacity: .72 }}>Flow</span></span>
+      <img src="https://res.cloudinary.com/dw9kvnkkz/image/upload/v1782212001/full_logo_gtiszq.png"
+        alt="SprintFlow" style={{ height: 40, objectFit: 'contain' }} />
     </div>
 
     {/* Hero copy */}

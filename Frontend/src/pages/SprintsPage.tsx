@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Pencil, Trash2, TrendingDown, Zap } from 'lucide-react';
 import { sprintsApi, projectsApi } from '../api';
 import { useApi } from '../hooks/useApi';
@@ -11,7 +11,6 @@ import {
   ConfirmModal,
   DetailModal,
 } from '../components/common';
-// import type { DetailField } from '../components/common';
 import type { Sprint, SprintStatus, Project, BurndownData } from '../types';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -174,27 +173,52 @@ const SprintsPage: React.FC = () => {
   const isAdmin = user?.role === 'admin';
 
   const { data: projectsData } = useApi<Project[]>(
-    useCallback(() => projectsApi.list({ limit: 100 }).then((r) => ({
-      data: { data: r.data.data, pagination: r.data.pagination },
-    })), [])
+    useCallback(() =>
+      projectsApi.list({ limit: 100 }).then((r) => ({
+        data: { data: r.data.data, pagination: r.data.pagination },
+      })), [])
   );
   const projects = projectsData || [];
 
   const [selectedProject, setSelectedProject] = useState('');
+  const [allSprints, setAllSprints] = useState<Sprint[]>([]);
+  const [loadingAll, setLoadingAll] = useState(false);
 
-  // FIX: don't fake a Promise shape — use a flag to skip the API call entirely
- // AFTER
-const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
-  useCallback(
-    () =>
-      selectedProject
-        ? sprintsApi.listByProject(selectedProject).then((r) => ({
-            data: { data: r.data.data },
-          }))
-        : Promise.resolve({ data: { data: [] as Sprint[] } }),
-    [selectedProject]
-  )
-);
+  // Fetch sprints for all projects on mount
+  useEffect(() => {
+    if (projects.length === 0) return;
+    setLoadingAll(true);
+    Promise.all(projects.map((p) => sprintsApi.listByProject(p.id).then((r) => r.data.data).catch(() => [] as Sprint[])))
+      .then((results) => setAllSprints(results.flat()))
+      .finally(() => setLoadingAll(false));
+  }, [projects.length]);
+
+  // Per-project fetch when filter selected
+  const [filteredSprints, setFilteredSprints] = useState<Sprint[] | null>(null);
+  const [loadingFilter, setLoadingFilter] = useState(false);
+
+  const handleProjectChange = async (projectId: string) => {
+    setSelectedProject(projectId);
+    if (!projectId) { setFilteredSprints(null); return; }
+    setLoadingFilter(true);
+    try {
+      const res = await sprintsApi.listByProject(projectId);
+      setFilteredSprints(res.data.data);
+    } catch { setFilteredSprints([]); }
+    finally { setLoadingFilter(false); }
+  };
+
+  const refetchAll = () => {
+    if (projects.length === 0) return;
+    setLoadingAll(true);
+    Promise.all(projects.map((p) => sprintsApi.listByProject(p.id).then((r) => r.data.data).catch(() => [] as Sprint[])))
+      .then((results) => setAllSprints(results.flat()))
+      .finally(() => setLoadingAll(false));
+    if (selectedProject) handleProjectChange(selectedProject);
+  };
+
+  const displaySprints = filteredSprints ?? allSprints;
+  const loading = loadingAll || loadingFilter;
 
   const [modal, setModal] = useState<'create' | Sprint | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);
@@ -212,7 +236,7 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
       }
       toast.success(modal === 'create' ? 'Sprint created' : 'Sprint updated');
       setModal(null);
-      refetch();
+      refetchAll();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || 'Failed to save sprint');
@@ -228,7 +252,7 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
       await sprintsApi.delete(delTarget);
       toast.success('Sprint deleted');
       setDelTarget(null);
-      refetch();
+      refetchAll();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || 'Failed to delete sprint');
@@ -245,16 +269,18 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
       <div className="page-header">
         <div>
           <div className="page-title">Sprints</div>
-          <div className="page-subtitle">Select a project to view its sprints</div>
+          <div className="page-subtitle">
+            {loading ? 'Loading…' : `${displaySprints.length} sprint${displaySprints.length !== 1 ? 's' : ''}${selectedProject ? ' in selected project' : ' across all projects'}`}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <select
             className="form-control"
             style={{ width: 210 }}
             value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
+            onChange={(e) => handleProjectChange(e.target.value)}
           >
-            <option value="">Select project…</option>
+            <option value="">All projects</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>{p.project_name}</option>
             ))}
@@ -268,13 +294,12 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
       </div>
 
       {loading && <LoadingCenter />}
-      {error && <Alert message={error} />}
 
       <div className="card">
-        {!sprints || sprints.length === 0 ? (
+        {!loading && displaySprints.length === 0 ? (
           <EmptyState
             icon={<Zap size={40} />}
-            message={selectedProject ? 'No sprints for this project' : 'Select a project to view sprints'}
+            message={selectedProject ? 'No sprints for this project' : 'No sprints yet — create one to get started'}
           />
         ) : (
           <div className="table-wrap">
@@ -282,6 +307,7 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
               <thead>
                 <tr>
                   <th>Sprint</th>
+                  <th>Project</th>
                   <th>Goal</th>
                   <th>Dates</th>
                   <th>Status</th>
@@ -289,17 +315,14 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
                 </tr>
               </thead>
               <tbody>
-                {sprints.map((s) => (
+                {displaySprints.map((s) => (
                   <tr key={s.id} className="row-clickable" onClick={() => setDetailTarget(s)}>
                     <td style={{ fontWeight: 500 }}>{s.sprint_name}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '.875rem' }}>
+                      {projects.find((p) => p.id === s.project_id)?.project_name || '—'}
+                    </td>
                     <td
-                      style={{
-                        color: 'var(--text-secondary)',
-                        maxWidth: 200,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
+                      style={{ color: 'var(--text-secondary)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       title={s.goal}
                     >
                       {s.goal || '—'}
@@ -307,33 +330,19 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
                     <td style={{ fontSize: '.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {formatDate(s.start_date)} → {formatDate(s.end_date)}
                     </td>
-                    <td>
-                      <StatusBadge status={s.sprint_status} />
-                    </td>
+                    <td><StatusBadge status={s.sprint_status} /></td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="table-actions">
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setBurndownId(s.id)}
-                          title="View burndown chart"
-                        >
+                        <button className="btn btn-ghost btn-sm" onClick={() => setBurndownId(s.id)} title="Burndown chart">
                           <TrendingDown size={13} /> Chart
                         </button>
                         {canEdit && (
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm"
-                            onClick={() => setModal(s)}
-                            title="Edit sprint"
-                          >
+                          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(s)} title="Edit">
                             <Pencil size={14} />
                           </button>
                         )}
                         {isAdmin && (
-                          <button
-                            className="btn btn-danger btn-icon btn-sm"
-                            onClick={() => setDelTarget(s.id)}
-                            title="Delete sprint"
-                          >
+                          <button className="btn btn-danger btn-icon btn-sm" onClick={() => setDelTarget(s.id)} title="Delete">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -347,11 +356,7 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
         )}
       </div>
 
-      <Modal
-        open={!!modal}
-        title={modal === 'create' ? 'New Sprint' : 'Edit Sprint'}
-        onClose={() => setModal(null)}
-      >
+      <Modal open={!!modal} title={modal === 'create' ? 'New Sprint' : 'Edit Sprint'} onClose={() => setModal(null)}>
         {modal && (
           <SprintForm
             initial={modal !== 'create' ? (modal as Sprint) : undefined}
@@ -371,7 +376,9 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
         loading={saving}
       />
 
-      <DetailModal open={!!detailTarget} title={detailTarget?.sprint_name || 'Sprint Detail'}
+      <DetailModal
+        open={!!detailTarget}
+        title={detailTarget?.sprint_name || 'Sprint Detail'}
         onClose={() => setDetailTarget(null)}
         fields={detailTarget ? [
           { label: 'Sprint Name', value: detailTarget.sprint_name },
@@ -383,9 +390,7 @@ const { data: sprints, loading, error, refetch } = useApi<Sprint[]>(
         ] : undefined}
       />
 
-      {burndownId && (
-        <BurndownModal sprintId={burndownId} onClose={() => setBurndownId(null)} />
-      )}
+      {burndownId && <BurndownModal sprintId={burndownId} onClose={() => setBurndownId(null)} />}
     </div>
   );
 };

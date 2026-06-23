@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Pencil, Trash2, Briefcase } from 'lucide-react';
+import { Plus, Pencil, Trash2, Briefcase, Users } from 'lucide-react';
 import { projectsApi } from '../api';
 import { useApi } from '../hooks/useApi';
 import {
@@ -14,6 +14,7 @@ import {
 } from '../components/common';
 import type { DetailField } from '../components/common';
 import type { Project, ProjectRequest, ProjectStatus } from '../types';
+import { ProjectTeamsModal } from './ProjectTeamsModal';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -130,6 +131,7 @@ const ProjectsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
+  const canManageTeams = isAdmin || user?.role === 'scrum_master';
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
 
@@ -146,6 +148,7 @@ const ProjectsPage: React.FC = () => {
   const [modal, setModal] = useState<'create' | Project | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);
   const [detailTarget, setDetailTarget] = useState<Project | null>(null);
+  const [teamsTarget, setTeamsTarget] = useState<Project | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (form: ProjectRequest) => {
@@ -232,7 +235,8 @@ const ProjectsPage: React.FC = () => {
                       <th>Code</th>
                       <th>Dates</th>
                       <th>Status</th>
-                      {isAdmin && <th>Actions</th>}
+                          {isAdmin && <th>Actions</th>}
+                        {canManageTeams && <th>Teams</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -269,6 +273,17 @@ const ProjectsPage: React.FC = () => {
                         <td>
                           <StatusBadge status={p.status} />
                         </td>
+                        {canManageTeams && (
+                          <td>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={(e) => { e.stopPropagation(); setTeamsTarget(p); }}
+                              title="Manage assigned teams"
+                            >
+                              <Users size={13} /> Teams
+                            </button>
+                          </td>
+                        )}
                         {isAdmin && (
                           <td>
                             <div className="table-actions">
@@ -346,13 +361,26 @@ const ProjectsPage: React.FC = () => {
         })()}
       >
         {detailTarget && (
-          <div style={{ marginTop: 16, textAlign: 'right' }}>
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            {canManageTeams && (
+              <button className="btn btn-secondary btn-sm" onClick={() => { setTeamsTarget(detailTarget); setDetailTarget(null); }}>
+                <Users size={13} /> Manage Teams
+              </button>
+            )}
             <button className="btn btn-primary btn-sm" onClick={() => { setDetailTarget(null); navigate(`/projects/${detailTarget.id}`); }}>
               View Full Project →
             </button>
           </div>
         )}
       </DetailModal>
+
+      {teamsTarget && (
+        <ProjectTeamsModal
+          project={teamsTarget}
+          onClose={() => setTeamsTarget(null)}
+          canEdit={isAdmin}
+        />
+      )}
     </div>
   );
 };

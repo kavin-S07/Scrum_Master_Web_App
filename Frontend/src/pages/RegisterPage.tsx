@@ -46,8 +46,8 @@ const RegisterPage: React.FC = () => {
       <div className="auth-form-panel">
         <div className="auth-form-card">
           <div className="auth-mobile-logo">
-            <div className="sidebar-logo-icon">SF</div>
-            <span className="sidebar-logo-text">Sprint<span>Flow</span></span>
+            <img src="https://res.cloudinary.com/dw9kvnkkz/image/upload/v1782212001/full_logo_gtiszq.png"
+              alt="SprintFlow" style={{ height: 36, objectFit: 'contain' }} />
           </div>
 
           <div className="auth-form-header">

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, GitBranch, CheckSquare, BarChart3 } from 'lucide-react';
 import { projectsApi, sprintsApi, tasksApi } from '../api';
@@ -9,16 +9,23 @@ import {
   EmptyState,
   StatusBadge,
 } from '../components/common';
+import { ProjectTeamsModal } from './ProjectTeamsModal';
+import { useAuth } from '../context/AuthContext';
 import type { Project, Team, Sprint, Task } from '../types';
 
 const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const canManageTeams = isAdmin || user?.role === 'scrum_master';
+  const [showTeamsModal, setShowTeamsModal] = useState(false);
+
   const { data: project, loading: loadingProj, error: errorProj } = useApi<Project>(
     useCallback(() => id ? projectsApi.get(id) : Promise.resolve({ data: { data: null as unknown as Project } }), [id])
   );
 
-  const { data: teamsRaw, loading: loadingTeams } = useApi<Team[]>(
+  const { data: teamsRaw, loading: loadingTeams, refetch: refetchTeams } = useApi<Team[]>(
     useCallback(() => id ? projectsApi.teams(id).then((r) => ({ data: { data: r.data.data } })) : Promise.resolve({ data: { data: [] as Team[] } }), [id])
   );
   const teams = teamsRaw || [];
@@ -214,7 +221,14 @@ const ProjectDetailPage: React.FC = () => {
 
       {/* Teams */}
       <div className="card" style={{ marginTop: 20 }}>
-        <div className="card-header"><h3 className="card-title"><Users size={16} /> Teams</h3></div>
+        <div className="card-header">
+          <h3 className="card-title"><Users size={16} /> Teams</h3>
+          {canManageTeams && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowTeamsModal(true)}>
+              <Users size={13} /> Manage Teams
+            </button>
+          )}
+        </div>
         {teams.length === 0 ? (
           <EmptyState message="No teams assigned to this project" />
         ) : (
@@ -240,6 +254,14 @@ const ProjectDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showTeamsModal && (
+        <ProjectTeamsModal
+          project={project}
+          canEdit={canManageTeams}
+          onClose={() => { setShowTeamsModal(false); refetchTeams(); }}
+        />
+      )}
     </div>
   );
 };

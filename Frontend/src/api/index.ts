@@ -52,7 +52,7 @@ export const departmentsApi = {
 // ─── Teams ────────────────────────────────────────────────────────────────────
 
 export const teamsApi = {
-  list: (department_id?: string) => api.get<ApiResponse<Team[]>>('/teams', { params: department_id ? { department_id } : undefined }),
+  list: (params?: { department_id?: string; scrum_master_id?: string }) => api.get<ApiResponse<Team[]>>('/teams', { params }),
   get: (id: string) => api.get<ApiResponse<Team>>(`/teams/${id}`),
   create: (data: TeamRequest) => api.post<ApiResponse<Team>>('/teams', data),
   update: (id: string, data: Partial<TeamRequest>) => api.put<ApiResponse<Team>>(`/teams/${id}`, data),

@@ -6,7 +6,7 @@ import { userUpdateSchema, userRoleSchema } from '../validators/user.validator';
 
 const router = Router();
 
-router.get('/', authenticate, authorize('admin'), userController.getAll);
+router.get('/', authenticate, authorize('admin', 'scrum_master'), userController.getAll);
 router.get('/:id', authenticate, userController.getById);
 router.put('/:id', authenticate, validate(userUpdateSchema), userController.update);
 router.patch('/:id/deactivate', authenticate, authorize('admin'), userController.deactivate);

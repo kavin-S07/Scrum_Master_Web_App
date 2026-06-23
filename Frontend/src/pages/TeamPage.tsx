@@ -278,10 +278,9 @@ const tdStyle: React.CSSProperties = {
 const TeamsPage: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const canEdit = user?.role === 'admin' || user?.role === 'scrum_master';
 
   const { data: teams, loading, error, refetch } = useApi<Team[]>(
-    useCallback(() => teamsApi.list(), [])
+    useCallback(() => teamsApi.list(user?.role === 'scrum_master' ? { scrum_master_id: user!.id } : undefined), [user])
   );
   const { data: departments } = useApi<Department[]>(
     useCallback(() => departmentsApi.list(), [])
@@ -407,11 +406,10 @@ const TeamsPage: React.FC = () => {
         onClose={() => setDetailTarget(null)}
         fields={(() => {
           if (!detailTarget) return undefined;
-          const sm = smUsers.find((u) => u.id === detailTarget.scrum_master_id);
           const f: DetailField[] = [
             { label: 'Team Name', value: detailTarget.team_name },
             { label: 'Department', value: departments?.find((d) => d.id === detailTarget.department_id)?.name || '—' },
-            { label: 'Scrum Master', value: sm ? `${sm.first_name} ${sm.last_name}` : '—' },
+            { label: 'Scrum Master', value: detailTarget.scrum_master_name || '—' },
             { label: 'Created', value: detailTarget.created_at ? new Date(detailTarget.created_at).toLocaleDateString() : '—' },
           ];
           return f;
@@ -430,7 +428,7 @@ const TeamsPage: React.FC = () => {
         <MembersModal
           team={membersTeam}
           onClose={() => setMembersTeam(null)}
-          canEdit={canEdit}
+          canEdit={isAdmin}
         />
       )}
     </div>
