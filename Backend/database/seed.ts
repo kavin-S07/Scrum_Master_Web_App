@@ -14,8 +14,8 @@ const seed = async () => {
     // Admin
     const adminId = uuidv4();
     await client.query(
-      `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, role)
-       VALUES ($1, 'ADMIN-001', 'Super', 'Admin', 'admin@sprintflow.com', $2, 'admin')
+      `INSERT INTO users (id, employee_id, first_name, email, password_hash, role)
+       VALUES ($1, 'ADMIN-001', 'Super', 'admin@sprintflow.com', $2, 'admin')
        ON CONFLICT (email) DO NOTHING`,
       [adminId, adminHash]
     );
@@ -23,8 +23,8 @@ const seed = async () => {
     // Scrum Master
     const smId = uuidv4();
     await client.query(
-      `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, role)
-       VALUES ($1, 'SM-001', 'Raj', 'Kumar', 'raj.sm@sprintflow.com', $2, 'scrum_master')
+      `INSERT INTO users (id, employee_id, first_name, email, password_hash, role)
+       VALUES ($1, 'SM-001', 'Raj', 'raj.sm@sprintflow.com', $2, 'scrum_master')
        ON CONFLICT (email) DO NOTHING`,
       [smId, userHash]
     );
@@ -34,10 +34,10 @@ const seed = async () => {
     const emp2Id = uuidv4();
     const emp3Id = uuidv4();
     await client.query(
-      `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, role) VALUES
-       ($1, 'EMP-001', 'Arun', 'Dev', 'arun@sprintflow.com', $4, 'employee'),
-       ($2, 'EMP-002', 'Priya', 'Coder', 'priya@sprintflow.com', $4, 'employee'),
-       ($3, 'EMP-003', 'Kiran', 'Tester', 'kiran@sprintflow.com', $4, 'employee')
+      `INSERT INTO users (id, employee_id, first_name, email, password_hash, role) VALUES
+       ($1, 'EMP-001', 'Arun', 'arun@sprintflow.com', $4, 'employee'),
+       ($2, 'EMP-002', 'Priya', 'priya@sprintflow.com', $4, 'employee'),
+       ($3, 'EMP-003', 'Kiran', 'kiran@sprintflow.com', $4, 'employee')
        ON CONFLICT (email) DO NOTHING`,
       [emp1Id, emp2Id, emp3Id, userHash]
     );

@@ -29,7 +29,6 @@ const Sidebar: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
     { label: 'Sprints',        to: '/sprints',         icon: <Zap size={16} /> },
     { label: 'Tasks',          to: '/tasks',           icon: <CheckSquare size={16} /> },
     { label: 'Leaves',         to: '/leaves',          icon: <CalendarDays size={16} /> },
-    { label: 'Standups',       to: '/standups',        icon: <Clock size={16} /> },
     { label: 'Reassignments',  to: '/reassignments',   icon: <RotateCcw size={16} /> },
     { label: 'Notifications',  to: '/notifications',   icon: <Bell size={16} /> },
   ];
@@ -56,7 +55,7 @@ const Sidebar: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
   ];
 
   const navItems = user?.role === 'admin' ? adminNav : user?.role === 'scrum_master' ? smNav : empNav;
-  const initials  = user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : '?';
+  const initials  = user ? user.first_name[0].toUpperCase() : '?';
   const roleLabel = user?.role === 'scrum_master' ? 'Scrum Master' : user?.role === 'admin' ? 'Administrator' : 'Employee';
 
   return (
@@ -93,7 +92,7 @@ const Sidebar: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
           <div className="sidebar-user">
             <div className="sidebar-user-avatar">{initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sidebar-user-name">{user?.first_name} {user?.last_name}</div>
+              <div className="sidebar-user-name">{user?.first_name}</div>
               <div className="sidebar-user-role">{roleLabel}</div>
             </div>
           </div>

@@ -45,7 +45,7 @@ export const delayedTaskJob = cron.schedule('0 8 * * *', async () => {
   try {
     const delayedTasks = await query(
       `SELECT t.*, ta.employee_id,
-              u.first_name || ' ' || u.last_name as employee_name
+              u.first_name as employee_name
        FROM tasks t
        JOIN task_assignments ta ON ta.task_id = t.id AND ta.is_current = TRUE
        JOIN users u ON u.id = ta.employee_id

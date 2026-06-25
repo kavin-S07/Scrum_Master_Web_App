@@ -46,7 +46,7 @@ const ReassignForm: React.FC<{
           onChange={(e) => set('new_employee_id', e.target.value)} required>
           <option value="">Select employee</option>
           {users.filter((u) => u.role === 'employee' && u.is_active).map((u) => (
-            <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.email})</option>
+            <option key={u.id} value={u.id}>{u.first_name} ({u.email})</option>
           ))}
         </select>
       </div>

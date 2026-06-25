@@ -20,14 +20,14 @@ export const teamRepository = {
     }
     const result = await query(
       `SELECT t.*, d.name as department_name,
-              u.first_name || ' ' || u.last_name as scrum_master_name,
+              u.first_name as scrum_master_name,
               COUNT(tm.id) as member_count
        FROM teams t
        LEFT JOIN departments d ON d.id = t.department_id
        LEFT JOIN users u ON u.id = t.scrum_master_id
        LEFT JOIN team_members tm ON tm.team_id = t.id
        ${where}
-       GROUP BY t.id, d.name, u.first_name, u.last_name
+       GROUP BY t.id, d.name, u.first_name
        ORDER BY t.created_at DESC`,
       params
     );
@@ -37,7 +37,7 @@ export const teamRepository = {
   async findById(id: string) {
     const result = await query(
       `SELECT t.*, d.name as department_name,
-              u.first_name || ' ' || u.last_name as scrum_master_name
+              u.first_name as scrum_master_name
        FROM teams t
        LEFT JOIN departments d ON d.id = t.department_id
        LEFT JOIN users u ON u.id = t.scrum_master_id
@@ -86,7 +86,7 @@ export const teamRepository = {
 
   async getMembers(teamId: string) {
     const result = await query(
-      `SELECT u.id, u.employee_id, u.first_name, u.last_name, u.email, u.role, tm.joined_at
+      `SELECT u.id, u.employee_id, u.first_name, u.email, u.role, tm.joined_at
        FROM team_members tm
        JOIN users u ON u.id = tm.employee_id
        WHERE tm.team_id = $1`,

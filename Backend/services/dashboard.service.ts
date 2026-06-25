@@ -24,7 +24,7 @@ export const dashboardService = {
 
     const topPerformers = await query(
       `SELECT
-         u.first_name || ' ' || u.last_name as name,
+         u.first_name as name,
          COALESCE(COUNT(t.id) FILTER (WHERE ta.is_current = TRUE AND t.status = 'completed'), 0)::int as total_tasks_completed,
          CASE
            WHEN COUNT(t.id) FILTER (WHERE ta.is_current = TRUE) = 0 THEN 0
@@ -37,7 +37,7 @@ export const dashboardService = {
        LEFT JOIN task_assignments ta ON ta.employee_id = u.id AND ta.is_current = TRUE
        LEFT JOIN tasks t ON t.id = ta.task_id
        WHERE u.role IN ('employee', 'scrum_master') AND u.is_active = TRUE
-       GROUP BY u.id, u.first_name, u.last_name
+       GROUP BY u.id, u.first_name
        ORDER BY productivity_score DESC, total_tasks_completed DESC
        LIMIT 5`
     );
@@ -110,7 +110,7 @@ export const dashboardService = {
         [teamIds]
       ),
       query(
-        `SELECT lr.*, u.first_name || ' ' || u.last_name as employee_name
+        `SELECT lr.*, u.first_name as employee_name
          FROM leave_requests lr
          JOIN users u ON u.id = lr.employee_id
          JOIN team_members tm ON tm.employee_id = lr.employee_id
@@ -118,7 +118,7 @@ export const dashboardService = {
         [teamIds]
       ),
       query(
-        `SELECT t.*, u.first_name || ' ' || u.last_name as assigned_to
+        `SELECT t.*, u.first_name as assigned_to
          FROM tasks t
          JOIN task_assignments ta ON ta.task_id = t.id AND ta.is_current = TRUE
          JOIN users u ON u.id = ta.employee_id
@@ -196,7 +196,7 @@ export const dashboardService = {
     const result = await query(
       `SELECT
          u.id,
-         u.first_name || ' ' || u.last_name as name,
+         u.first_name as name,
          COUNT(t.id) as total_tasks,
          COUNT(t.id) FILTER (WHERE t.status = 'completed') as completed_tasks,
          COUNT(t.id) FILTER (WHERE t.due_date < CURRENT_DATE AND t.status != 'completed') as overdue_tasks,
@@ -207,7 +207,7 @@ export const dashboardService = {
        LEFT JOIN tasks t ON t.id = ta.task_id
        LEFT JOIN work_logs wl ON wl.employee_id = u.id
        WHERE tm.team_id = $1
-       GROUP BY u.id, u.first_name, u.last_name`,
+       GROUP BY u.id, u.first_name`,
       [teamId]
     );
     return result.rows;

@@ -39,7 +39,6 @@ const REFRESH_TOKEN_RETENTION_DAYS = 30;
 export const authService = {
   async register(data: {
     first_name: string;
-    last_name: string;
     email: string;
     password: string;
     phone?: string;

@@ -67,7 +67,7 @@ const UsersPage: React.FC = () => {
                 {(data as User[]).map((u) => (
                   <tr key={u.id} className="row-clickable" onClick={() => setDetailTarget(u)}>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{u.first_name} {u.last_name}</div>
+                      <div style={{ fontWeight: 500 }}>{u.first_name}</div>
                       {u.employee_id && <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{u.employee_id}</div>}
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
@@ -99,10 +99,10 @@ const UsersPage: React.FC = () => {
         loading={actionLoading}
       />
 
-      <DetailModal open={!!detailTarget} title={detailTarget ? `${detailTarget.first_name} ${detailTarget.last_name}` : 'User Detail'}
+      <DetailModal open={!!detailTarget} title={detailTarget ? detailTarget.first_name : 'User Detail'}
         onClose={() => setDetailTarget(null)}
         fields={detailTarget ? [
-          { label: 'Name', value: `${detailTarget.first_name} ${detailTarget.last_name}`, fullWidth: true },
+          { label: 'Name', value: detailTarget.first_name, fullWidth: true },
           { label: 'Employee ID', value: detailTarget.employee_id || '—' },
           { label: 'Email', value: detailTarget.email },
           { label: 'Role', value: <Badge color={detailTarget.role === 'admin' ? 'red' : detailTarget.role === 'scrum_master' ? 'purple' : 'blue'}>{roleLabel[detailTarget.role]}</Badge> },

@@ -3,7 +3,6 @@ export interface User {
   id: string;
   employee_id?: string;
   first_name: string;
-  last_name: string;
   email: string;
   phone?: string;
   role: 'admin' | 'scrum_master' | 'employee';
@@ -19,7 +18,7 @@ export interface LoginResponse {
   refreshToken: string;
 }
 export interface RegisterRequest {
-  first_name: string; last_name: string; email: string; password: string;
+  first_name: string; email: string; password: string;
   phone?: string; role?: 'employee' | 'scrum_master';
 }
 
@@ -39,7 +38,7 @@ export interface Team {
 }
 export interface TeamMember {
   id: string; team_id: string; employee_id: string; joined_at: string;
-  first_name: string; last_name: string; email: string; role: string;
+  first_name: string; email: string; role: string;
 }
 export interface TeamRequest {
   department_id: string; team_name: string; scrum_master_id: string;

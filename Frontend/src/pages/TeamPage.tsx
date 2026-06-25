@@ -57,7 +57,7 @@ const TeamForm: React.FC<{
         >
           <option value="">Select scrum master</option>
           {scrumMasters.map((u) => (
-            <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
+            <option key={u.id} value={u.id}>{u.first_name}</option>
           ))}
         </select>
       </div>
@@ -138,7 +138,7 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
             <option value="">Select employee to add…</option>
             {available.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.first_name} {u.last_name} — {u.email}
+                {u.first_name} — {u.email}
               </option>
             ))}
           </select>
@@ -204,7 +204,7 @@ const MembersModal: React.FC<{ team: Team; onClose: () => void; canEdit: boolean
                       fontWeight: 600, fontSize: 14, color: 'var(--text-primary, #0F172A)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {m.first_name} {m.last_name}
+                      {m.first_name}
                     </div>
                   </td>
                   <td style={tdStyle}>

@@ -33,7 +33,7 @@ export const workLogRepository = {
 
   async findByTask(taskId: string) {
     const result = await query(
-      `SELECT wl.*, u.first_name || ' ' || u.last_name as employee_name
+      `SELECT wl.*, u.first_name as employee_name
        FROM work_logs wl
        JOIN users u ON u.id = wl.employee_id
        WHERE wl.task_id = $1 ORDER BY wl.log_date DESC`,

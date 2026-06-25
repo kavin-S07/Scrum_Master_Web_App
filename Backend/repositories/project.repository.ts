@@ -25,7 +25,7 @@ export const projectRepository = {
     }
 
     const result = await query(
-      `SELECT p.*, u.first_name || ' ' || u.last_name as created_by_name,
+      `SELECT p.*, u.first_name as created_by_name,
               COUNT(DISTINCT s.id) as total_sprints,
               COUNT(DISTINCT pt.team_id) as total_teams
        FROM projects p
@@ -33,7 +33,7 @@ export const projectRepository = {
        LEFT JOIN sprints s ON s.project_id = p.id
        LEFT JOIN project_teams pt ON pt.project_id = p.id
        ${where}
-       GROUP BY p.id, u.first_name, u.last_name
+       GROUP BY p.id, u.first_name
        ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`,
       listParams
     );
@@ -44,7 +44,7 @@ export const projectRepository = {
 
   async findById(id: string) {
     const result = await query(
-      `SELECT p.*, u.first_name || ' ' || u.last_name as created_by_name
+      `SELECT p.*, u.first_name as created_by_name
        FROM projects p
        LEFT JOIN users u ON u.id = p.created_by
        WHERE p.id = $1`,
@@ -101,7 +101,7 @@ export const projectRepository = {
   async getProjectTeams(projectId: string) {
     const result = await query(
       `SELECT t.*, d.name as department_name,
-              u.first_name || ' ' || u.last_name as scrum_master_name
+              u.first_name as scrum_master_name
        FROM project_teams pt
        JOIN teams t ON t.id = pt.team_id
        LEFT JOIN departments d ON d.id = t.department_id

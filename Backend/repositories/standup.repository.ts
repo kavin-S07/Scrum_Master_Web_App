@@ -24,7 +24,7 @@ export const standupRepository = {
 
   async findByTeamAndDate(teamId: string, date: Date) {
     const result = await query(
-      `SELECT s.*, u.first_name || ' ' || u.last_name as employee_name, u.employee_id as emp_code
+      `SELECT s.*, u.first_name as employee_name, u.employee_id as emp_code
        FROM standups s
        JOIN users u ON u.id = s.employee_id
        JOIN team_members tm ON tm.employee_id = s.employee_id

@@ -49,7 +49,7 @@ const Header: React.FC<{ title: string; onMenuClick: () => void }> = ({ title, o
     } catch { /* ignore */ }
   };
 
-  const initials = user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : '?';
+  const initials = user ? user.first_name[0].toUpperCase() : '?';
 
   return (
     <header className="header">
@@ -131,7 +131,7 @@ const Header: React.FC<{ title: string; onMenuClick: () => void }> = ({ title, o
         {/* User chip */}
         <div className="header-user-chip">
           <div className="header-user-chip-avatar">{initials}</div>
-          <span className="header-user-chip-name">{user?.first_name} {user?.last_name}</span>
+          <span className="header-user-chip-name">{user?.first_name}</span>
         </div>
       </div>
     </header>

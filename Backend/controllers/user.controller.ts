@@ -27,7 +27,7 @@ export const userController = {
       throw new AppError('Forbidden: you can only update your own profile', 403);
     }
     // req.body has already been validated/whitelisted to first_name,
-    // last_name, phone, profile_image by userUpdateSchema. The repository
+    // phone, profile_image by userUpdateSchema. The repository
     // layer also enforces its own column allow-list as defense in depth.
     const user = await userRepository.update(req.params.id, req.body);
     sendSuccess(res, user, 'User updated');

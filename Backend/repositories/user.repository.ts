@@ -2,7 +2,7 @@ import { query } from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
 import { buildUpdateSet } from '../utils/sql';
 
-const UPDATABLE_USER_FIELDS = ['first_name', 'last_name', 'phone', 'profile_image'] as const;
+const UPDATABLE_USER_FIELDS = ['first_name', 'phone', 'profile_image'] as const;
 
 export const userRepository = {
   async findAll(page: number, limit: number, role?: string) {
@@ -12,19 +12,13 @@ export const userRepository = {
     let whereClause = '';
 
     if (role) {
-      // FIX: the previous version hardcoded `WHERE role = $3` for the
-      // paginated query (correct there, since $1/$2 are limit/offset) but
-      // then reused that exact same string for the COUNT query, where only
-      // one param was actually being passed — Postgres would reject it with
-      // "bind message supplies 1 parameters, but prepared statement
-      // requires 3". The two queries need independently-numbered params.
       whereClause = 'WHERE role = $3';
       listParams.push(role);
       countParams.push(role);
     }
 
     const result = await query(
-      `SELECT id, employee_id, first_name, last_name, email, phone, role, is_active, created_at
+      `SELECT id, employee_id, first_name, email, phone, role, is_active, created_at
        FROM users ${whereClause}
        ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       listParams
@@ -36,7 +30,7 @@ export const userRepository = {
 
   async findById(id: string) {
     const result = await query(
-      `SELECT u.id, u.employee_id, u.first_name, u.last_name, u.email, u.phone, u.role,
+      `SELECT u.id, u.employee_id, u.first_name, u.email, u.phone, u.role,
               u.profile_image, u.is_active, u.created_at,
               em.total_tasks_assigned, em.total_tasks_completed, em.productivity_score, em.total_hours
        FROM users u
@@ -49,17 +43,12 @@ export const userRepository = {
 
   async update(
     id: string,
-    data: Partial<{ first_name: string; last_name: string; phone: string; profile_image: string }>
+    data: Partial<{ first_name: string; phone: string; profile_image: string }>
   ) {
-    // FIX: previously built the SET clause from raw Object.keys(data) with
-    // no allow-list, so an unvalidated caller could inject arbitrary column
-    // names into the query. Also previously threw a malformed-SQL error
-    // ("SET , updated_at = NOW()") when called with an empty object — that
-    // now surfaces as a clean 400 from buildUpdateSet.
     const { setClause, values } = buildUpdateSet(data, UPDATABLE_USER_FIELDS, 2);
     const result = await query(
       `UPDATE users SET ${setClause}, updated_at = NOW() WHERE id = $1
-       RETURNING id, employee_id, first_name, last_name, email, phone, role, is_active, profile_image`,
+       RETURNING id, employee_id, first_name, email, phone, role, is_active, profile_image`,
       [id, ...values]
     );
     return result.rows[0];
@@ -75,7 +64,7 @@ export const userRepository = {
 
   async getTeamMembers(teamId: string) {
     const result = await query(
-      `SELECT u.id, u.employee_id, u.first_name, u.last_name, u.email, u.role,
+      `SELECT u.id, u.employee_id, u.first_name, u.email, u.role,
               tm.joined_at
        FROM team_members tm
        JOIN users u ON u.id = tm.employee_id

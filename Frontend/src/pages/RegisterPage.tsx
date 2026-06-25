@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<RegisterRequest>({
-    first_name: '', last_name: '', email: '', password: '',
+    first_name: '', email: '', password: '',
     phone: '', role: 'employee',
   });
   const [loading, setLoading] = useState(false);
@@ -62,10 +62,6 @@ const RegisterPage: React.FC = () => {
               <div className="form-group">
                 <label className="form-label">First name</label>
                 <input className="form-control" value={form.first_name} onChange={(e) => set('first_name', e.target.value)} required minLength={2} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Last name</label>
-                <input className="form-control" value={form.last_name} onChange={(e) => set('last_name', e.target.value)} required minLength={2} />
               </div>
             </div>
             <div className="form-group">

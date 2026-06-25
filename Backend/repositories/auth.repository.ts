@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateUserDto {
   first_name: string;
-  last_name: string;
   email: string;
   password_hash: string;
   phone?: string;
@@ -14,7 +13,6 @@ export interface UserRow {
   id: string;
   employee_id: string;
   first_name: string;
-  last_name: string;
   email: string;
   password_hash: string;
   phone: string | null;
@@ -35,7 +33,7 @@ export const authRepository = {
   /** Returns public profile (no password_hash). */
   async findById(id: string) {
     const result = await query(
-      'SELECT id, employee_id, first_name, last_name, email, phone, role, profile_image, is_active, created_at FROM users WHERE id = $1',
+      'SELECT id, employee_id, first_name, email, phone, role, profile_image, is_active, created_at FROM users WHERE id = $1',
       [id]
     );
     return result.rows[0] || null;
@@ -49,14 +47,12 @@ export const authRepository = {
 
   async create(data: CreateUserDto) {
     const id = uuidv4();
-    // employee_id is always server-generated — never trust a client-supplied
-    // value here, since it's used as a human-facing identifier elsewhere.
     const empId = `EMP-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 10)}`;
     const result = await query(
-      `INSERT INTO users (id, employee_id, first_name, last_name, email, password_hash, phone, role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, employee_id, first_name, last_name, email, phone, role, is_active, created_at`,
-      [id, empId, data.first_name, data.last_name, data.email.toLowerCase().trim(),
+      `INSERT INTO users (id, employee_id, first_name, email, password_hash, phone, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, employee_id, first_name, email, phone, role, is_active, created_at`,
+      [id, empId, data.first_name, data.email.toLowerCase().trim(),
        data.password_hash, data.phone || null, data.role]
     );
     return result.rows[0];
@@ -72,7 +68,7 @@ export const authRepository = {
   async updateRole(id: string, role: 'admin' | 'scrum_master' | 'employee') {
     const result = await query(
       `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2
-       RETURNING id, employee_id, first_name, last_name, email, phone, role, is_active, created_at`,
+       RETURNING id, employee_id, first_name, email, phone, role, is_active, created_at`,
       [role, id]
     );
     return result.rows[0] || null;

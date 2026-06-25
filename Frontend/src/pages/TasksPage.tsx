@@ -161,7 +161,7 @@ const AssignForm: React.FC<{
 }> = ({ taskId, projectId, onAssign, loading }) => {
   const [employeeId, setEmployeeId] = useState('');
 
-  const [assignable, setAssignable] = useState<{ id: string; first_name: string; last_name: string; email: string }[]>([]);
+  const [assignable, setAssignable] = useState<{ id: string; first_name: string; email: string }[]>([]);
   const [loading_, setLoading_] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
 
@@ -194,7 +194,7 @@ const AssignForm: React.FC<{
           onChange={(e) => setEmployeeId(e.target.value)} required disabled={loading_}>
           <option value="">{loading_ ? 'Loading team members…' : 'Choose employee…'}</option>
           {assignable.map((u) => (
-            <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.email})</option>
+            <option key={u.id} value={u.id}>{u.first_name} ({u.email})</option>
           ))}
         </select>
         {!loading_ && isEmpty && (

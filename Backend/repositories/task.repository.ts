@@ -32,7 +32,7 @@ export const taskRepository = {
       `SELECT t.*,
               p.project_name,
               s.sprint_name,
-              u.first_name || ' ' || u.last_name as assigned_to_name,
+              u.first_name as assigned_to_name,
               ta.employee_id as assigned_to_id
        FROM tasks t
        LEFT JOIN projects p ON p.id = t.project_id
@@ -56,9 +56,9 @@ export const taskRepository = {
       `SELECT t.*,
               p.project_name,
               s.sprint_name,
-              u.first_name || ' ' || u.last_name as assigned_to_name,
+              u.first_name as assigned_to_name,
               ta.employee_id as assigned_to_id,
-              creator.first_name || ' ' || creator.last_name as created_by_name
+              creator.first_name as created_by_name
        FROM tasks t
        LEFT JOIN projects p ON p.id = t.project_id
        LEFT JOIN sprints s ON s.id = t.sprint_id
@@ -115,8 +115,8 @@ export const taskRepository = {
 
   async getAssignmentHistory(taskId: string) {
     const result = await query(
-      `SELECT ta.*, u.first_name || ' ' || u.last_name as employee_name,
-              ab.first_name || ' ' || ab.last_name as assigned_by_name
+      `SELECT ta.*, u.first_name as employee_name,
+              ab.first_name as assigned_by_name
        FROM task_assignments ta
        JOIN users u ON u.id = ta.employee_id
        JOIN users ab ON ab.id = ta.assigned_by

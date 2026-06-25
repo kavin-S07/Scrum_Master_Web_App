@@ -26,9 +26,9 @@ export const leaveRepository = {
 
     const result = await query(
       `SELECT lr.*,
-              u.first_name || ' ' || u.last_name as employee_name,
-              u.employee_id as emp_code,
-              ab.first_name || ' ' || ab.last_name as approved_by_name
+u.first_name as employee_name,
+               u.employee_id as emp_code,
+               ab.first_name as approved_by_name
        FROM leave_requests lr
        JOIN users u ON u.id = lr.employee_id
        LEFT JOIN users ab ON ab.id = lr.approved_by
@@ -46,7 +46,7 @@ export const leaveRepository = {
 
   async findById(id: string) {
     const result = await query(
-      `SELECT lr.*, u.first_name || ' ' || u.last_name as employee_name
+      `SELECT lr.*, u.first_name as employee_name
        FROM leave_requests lr
        JOIN users u ON u.id = lr.employee_id
        WHERE lr.id = $1`,

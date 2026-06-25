@@ -8,7 +8,6 @@ import logger from '../utils/logger';
 interface TeamMemberWorkload {
   id: string;
   first_name: string;
-  last_name: string;
   active_tasks: number;
   total_story_points: number;
   workload_score: number;
@@ -29,13 +28,13 @@ export const reassignmentService = {
     }
 
     const membersResult = await query(
-      `SELECT u.id, u.first_name, u.last_name
+      `SELECT u.id, u.first_name
        FROM team_members tm
        JOIN users u ON u.id = tm.employee_id
        WHERE tm.team_id = $1 AND u.id != $2 AND u.is_active = TRUE AND u.role = 'employee'`,
       [teamId, employeeId]
     );
-    const members = membersResult.rows as { id: string; first_name: string; last_name: string }[];
+    const members = membersResult.rows as { id: string; first_name: string }[];
 
     if (members.length === 0) {
       logger.warn(`No available team members in team ${teamId} for reassignment`);
@@ -50,7 +49,6 @@ export const reassignmentService = {
         return {
           id: m.id,
           first_name: m.first_name,
-          last_name: m.last_name,
           active_tasks: activeTaskCount,
           total_story_points: storyPoints,
           // Weighted score: tasks 40%, story points 60%
@@ -107,7 +105,7 @@ export const reassignmentService = {
       reassigned.push({
         task_id: task.id,
         task_title: task.title,
-        assigned_to: `${targetMember.first_name} ${targetMember.last_name}`,
+        assigned_to: targetMember.first_name,
       });
     }
 
@@ -164,9 +162,9 @@ export const reassignmentService = {
     const result = await query(
       `SELECT tr.*,
               t.title as task_title,
-              oe.first_name || ' ' || oe.last_name as old_employee_name,
-              ne.first_name || ' ' || ne.last_name as new_employee_name,
-              rb.first_name || ' ' || rb.last_name as reassigned_by_name
+              oe.first_name as old_employee_name,
+              ne.first_name as new_employee_name,
+              rb.first_name as reassigned_by_name
        FROM task_reassignments tr
        JOIN tasks t ON t.id = tr.task_id
        LEFT JOIN users oe ON oe.id = tr.old_employee

@@ -11,7 +11,6 @@ const passwordSchema = Joi.string()
 
 export const registerSchema = Joi.object({
   first_name: Joi.string().trim().min(2).max(100).required(),
-  last_name: Joi.string().trim().min(2).max(100).required(),
   email: Joi.string().email({ tlds: { allow: false } }).lowercase().trim().required(),
   password: passwordSchema,
   phone: Joi.string().trim().max(20).optional().allow(''),
